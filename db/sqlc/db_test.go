@@ -24,9 +24,7 @@ func TestQueries_CRUD_Completo(t *testing.T) {
 	testQueries := New(conn)
 	ctx := context.Background()
 
-	// =============================================================
 	// 1. TESTS DE PELÍCULAS
-	// =============================================================
 
 	// A. CreateMovie
 	movie, err := testQueries.CreateMovie(ctx, CreateMovieParams{
@@ -73,9 +71,7 @@ func TestQueries_CRUD_Completo(t *testing.T) {
 		t.Errorf("UpdateMovie no actualizó el nombre correctamente")
 	}
 
-	// =============================================================
 	// 2. TESTS DE GÉNEROS
-	// =============================================================
 
 	// A. CreateGenre
 	genre, err := testQueries.CreateGenre(ctx, "Ciencia Ficción")
@@ -83,7 +79,7 @@ func TestQueries_CRUD_Completo(t *testing.T) {
 		t.Fatalf("CreateGenre falló: %v", err)
 	}
 
-	// B. GetGenre (Usamos fetchedGenre para evitar el error de variable no usada)
+	// B. GetGenre
 	fetchedGenre, err := testQueries.GetGenre(ctx, genre.ID)
 	if err != nil {
 		t.Fatalf("GetGenre falló: %v", err)
@@ -100,12 +96,15 @@ func TestQueries_CRUD_Completo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpdateGenre falló: %v", err)
 	}
+	// Validar Update de Género
+	updatedGenre, err := testQueries.GetGenre(ctx, genre.ID)
+	if err != nil || updatedGenre.NameGenre != "Sci-Fi" {
+		t.Errorf("UpdateGenre no actualizó el nombre del género correctamente")
+	}
 
-	// =============================================================
-	// 3. TESTS DE RELACIÓN N:M (Película - Género)
-	// =============================================================
+	// 3. TESTS DE MOVIEGENRE.
 
-	// A. Asociar Género a Película (Capturamos los 2 valores devueltos: assoc y err)
+	// A. Asociar Género a Película
 	assoc, err := testQueries.AddMovieGenre(ctx, AddMovieGenreParams{
 		MovieID: movie.ID,
 		GenreID: genre.ID,
@@ -113,7 +112,6 @@ func TestQueries_CRUD_Completo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddMovieGenre falló: %v", err)
 	}
-	// Usamos 'assoc' para validar la relación
 	if assoc.MovieID != movie.ID || assoc.GenreID != genre.ID {
 		t.Errorf("AddMovieGenre: la asociación creada no coincide con la película o el género")
 	}
@@ -127,9 +125,7 @@ func TestQueries_CRUD_Completo(t *testing.T) {
 		t.Fatalf("RemoveMovieGenre falló: %v", err)
 	}
 
-	// =============================================================
-	// 4. CLEANUP / ELIMINACIÓN (Delete)
-	// =============================================================
+	// 4. DELETE
 
 	// A. DeleteMovie
 	err = testQueries.DeleteMovie(ctx, movie.ID)
@@ -147,5 +143,10 @@ func TestQueries_CRUD_Completo(t *testing.T) {
 	err = testQueries.DeleteGenre(ctx, genre.ID)
 	if err != nil {
 		t.Fatalf("DeleteGenre falló: %v", err)
+	}
+	// Validar que ya no existe el género
+	_, err = testQueries.GetGenre(ctx, genre.ID)
+	if err != sql.ErrNoRows {
+		t.Errorf("Se esperaba sql.ErrNoRows al consultar género eliminado")
 	}
 }
