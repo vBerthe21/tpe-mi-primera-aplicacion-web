@@ -14,26 +14,28 @@
 * SQLC, usado para la generación de código GO a partir de consultas SQL realizadas en el motor PostgreSQL.
 
 ## Estructura del proyecto:
+```text
 ├── db/
-    ├── migrations/     #Migraciones generadas por Atlas.
-        ├── atlas.sum
-    ├── queries/        #Consultas en SQL.
-        ├── queries.sql
-    ├── schema/         #Definición de las entidades y sus atributos.
-        ├── schema.sql
-    ├── sqlc/       #Código generado por SQLC. El resto de archivos se genera automáticamente al ejecutar sqlc/make.
-        ├── db_test.go
+│   ├── migrations/
+│   │   └── atlas.sum
+│   ├── queries/
+│   │   └── queries.sql
+│   ├── schema/
+│   │   └── schema.sql
+│   └── sqlc/
+│       └── db_test.go   # Único archivo rastreado (tests)
 ├── logic/
-    ├── movies.go
+│   └── movies.go
 ├── static/
-    ├── index.html
+│   └── index.html
 ├── docker-compose.yml
 ├── go.mod
 ├── go.sum
 ├── main.go
 ├── Makefile
 ├── readme.md
-├── sqlc.yaml
+└── sqlc.yaml
+```
 
 ## Composición de entidades.
 #### Movies.
