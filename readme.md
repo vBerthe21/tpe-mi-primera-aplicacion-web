@@ -7,10 +7,46 @@
 # Entrega TP2: Mi Primera Aplicación Web.
 ## Para realizar la automatización y persistencia del proyecto, se debe contar con los siguientes requisitos:
 * Go en una versión >= 1.25.0.
+* PostgreSQL como motor de base de datos.
 * Docker y Docker Compose, necesario para levantar el contenedor con la base de datos.
 * Make, para la automatización de tareas necesarias para realizar el test.
 * Atlas, utilizada para realizar las migraciones de la base de datos.
 * SQLC, usado para la generación de código GO a partir de consultas SQL realizadas en el motor PostgreSQL.
+
+## Estructura del proyecto:
+├── db/
+    ├── migrations/     #Migraciones generadas por Atlas.
+        ├── atlas.sum
+    ├── queries/        #Consultas en SQL.
+        ├── queries.sql
+    ├── schema/         #Definición de las entidades y sus atributos.
+        ├── schema.sql
+    ├── sqlc/       #Código generado por SQLC. El resto de archivos se genera automáticamente al ejecutar sqlc/make.
+        ├── db_test.go
+├── logic/
+    ├── movies.go
+├── static/
+    ├── index.html
+├── docker-compose.yml
+├── go.mod
+├── go.sum
+├── main.go
+├── Makefile
+├── readme.md
+├── sqlc.yaml
+
+## Composición de entidades.
+#### Movies.
+La tabla que contiene la información referente a las películas. Contiene id (PK), nombre, autor, duración, y, como opcionales: puntaje, review y descripción.
+#### Genre.
+Tabla que contiene los géneros de las películas. Contiene id (PK) y nombre.
+#### MovieGenre.
+Tabla de la relación que surge entre las anteriores. Contiene las claves de las otras tablas: id de la pelicula y id del genero.
+
+## Persistencia:
+Las modificaciones al esquema se realizan en db/schema/schema.sql y se migran a la base de datos PostgreSQL usando Atlas.
+Las consultas a la base de datos se escriben en SQL en db/queries/queries.sql.
+SQLC lee las consultas y genera el código en Go dentro de db/sqlc/
 
 ## Ejecución de parte 2:
 * Para ejecutar esta segunda parte, debe hacerse un clonado del repositorio, obteniendose de esa forma el link, posteriormente en el IDE de preferencia se
