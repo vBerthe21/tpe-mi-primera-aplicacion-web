@@ -43,5 +43,25 @@ test: generate build
 	@echo "-> Limpiando entorno..."
 	@docker compose down -v
 
+test-hurl: generate build
+	@echo "-> Limpiando entorno previo..."
+	@docker compose down -v
+	@echo "-> Levantando PostgreSQL en Docker..."
+	@docker compose up -d
+	@echo "-> Esperando a que PostgreSQL esté listo..."
+	@sleep 3
+	@echo "-> Aplicando migraciones con Atlas..."
+	@atlas migrate apply --dir "file://db/migrations" --url "$(DB_URL)"
+	@echo "-> Iniciando el servidor Go en segundo plano..."
+	@./tmp/$(APP_NAME) & echo $$! > tmp/server.pid
+	@sleep 2
+	@echo "-> Ejecutando pruebas de integración con Hurl..."
+	@hurl --test requests.hurl; EXIT_CODE=$$?; \
+	echo "-> Apagando servidor Go..."; \
+	kill $$(cat tmp/server.pid) && rm tmp/server.pid; \
+	echo "-> Limpiando contenedores Docker..."; \
+	docker compose down -v; \
+	exit $$EXIT_CODE
+
 clean:
 	@rm -rf tmp

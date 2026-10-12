@@ -26,6 +26,8 @@
 │       └── db_test.go   # Único archivo rastreado (tests)
 ├── logic/
 │   └── movies.go
+    └── genre.go
+    └── movie_genre.go
 ├── static/
 │   └── index.html
 ├── docker-compose.yml
@@ -53,3 +55,7 @@ SQLC lee las consultas y genera el código en Go dentro de db/sqlc/
 ## Ejecución de parte 2:
 * Para ejecutar esta segunda parte, debe hacerse un clonado del repositorio, obteniendose de esa forma el link, posteriormente en el IDE de preferencia se
 abre una terminal, se ejecuta el comando **git clone** junto con el link del repositorio. Por último, desde la ruta principal del proyecto debe ejecutarse **make test**.
+
+## Ejecución de parte 3:
+* Para ejecutar esta tercera parte, debe hacerse un clonado del repositorio, obteniendose de esa forma el link, posteriormente en el IDE de preferencia se
+abre una terminal, se ejecuta el comando **git clone** junto con el link del repositorio. Por último, desde la ruta principal del proyecto debe ejecutarse **make test-hurl**.
