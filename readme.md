@@ -26,8 +26,8 @@
 │       └── db_test.go   # Único archivo rastreado (tests)
 ├── logic/
 │   └── movies.go
-    └── genre.go
-    └── movie_genre.go
+│    └── genre.go
+│    └── movie_genre.go
 ├── static/
 │   └── index.html
 ├── docker-compose.yml
