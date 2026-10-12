@@ -53,7 +53,30 @@ func MoviesHandler(w http.ResponseWriter, r *http.Request) {
 		default:
 			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed) //HTTP 405.
 		}
+		return
 	}
+
+	// Caso 3 y 4: /movies/{id}/genres (len == 4) o /movies/{id}/genres/{genre_id} (len == 5)
+	// Se lo derivamos directamente a MovieGenresHandler
+	if len(parts) >= 4 && parts[1] == "movies" && parts[3] == "genres" {
+		MovieGenresHandler(w, r)
+		return
+	}
+
+	http.Error(w, "Ruta no encontrada", http.StatusNotFound)
+
+}
+
+func ValidateMovie(m MovieRequest) error {
+	switch {
+	case (m.Name == ""):
+		return errors.New("El nombre de la película es obligatorio")
+	case (m.Author == ""):
+		return errors.New("El autor de la película es obligatorio")
+	case (m.Duration <= 0):
+		return errors.New("La duración de la película debe ser mayor a 0")
+	}
+	return nil
 }
 
 func getMovies(w http.ResponseWriter, r *http.Request) {

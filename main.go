@@ -31,6 +31,10 @@ func main() {
 
 	logic.Queries = db.New(dbConn)
 
+	http.HandleFunc("/genres", logic.GenresHandler)
+	http.HandleFunc("/genres/", logic.GenresHandler)
+
+	http.HandleFunc("/movies", logic.MoviesHandler)
 	http.HandleFunc("/movies/", logic.MoviesHandler)
 
 	staticDir := "./static"
