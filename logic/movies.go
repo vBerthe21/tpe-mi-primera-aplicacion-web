@@ -21,18 +21,6 @@ type MovieRequest struct {
 	Description *string `json:"description"`
 }
 
-func ValidateMovie(m MovieRequest) error {
-	switch {
-	case (m.Name == ""):
-		return errors.New("name es obligatorio")
-	case (m.Author == ""):
-		return errors.New("author es obligatorio")
-	case (m.Duration <= 0):
-		return errors.New("duration debe ser mayor a 0")
-	}
-	return nil
-}
-
 func MoviesHandler(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimSuffix(r.URL.Path, "/") //Si existe una barra al final la elimina.
 	parts := strings.Split(path, "/")           //Para dividir el path en partes usando / como separador.
