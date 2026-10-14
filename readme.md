@@ -13,6 +13,16 @@
 * Atlas, utilizada para realizar las migraciones de la base de datos.
 * SQLC, usado para la generación de código GO a partir de consultas SQL realizadas en el motor PostgreSQL.
 
+# Entrega TP3: Mi Primera Aplicación Web.
+## Para realizar la automatización y persistencia del proyecto, se debe contar con los siguientes requisitos:
+* Go en una versión >= 1.25.0.
+* PostgreSQL como motor de base de datos.
+* Docker y Docker Compose, necesario para levantar el contenedor con la base de datos.
+* Make, para la automatización de tareas necesarias para realizar el test.
+* Atlas, utilizada para realizar las migraciones de la base de datos.
+* SQLC, usado para la generación de código GO a partir de consultas SQL realizadas en el motor PostgreSQL.
+* Hurl, utilizado para la automatización de las pruebas de los endpoints.
+
 ## Estructura del proyecto:
 ```text
 ├── db/
@@ -23,7 +33,7 @@
 │   ├── schema/
 │   │   └── schema.sql
 │   └── sqlc/
-│       └── db_test.go   # Único archivo rastreado (tests)
+│       └── db_test.go
 ├── logic/
 │   └── movies.go
 │    └── genre.go
