@@ -43,7 +43,7 @@ test: generate build
 	@echo "-> Limpiando entorno..."
 	@docker compose down -v
 
-test-hurl: generate build
+test-api: generate build
 	@echo "-> Limpiando entorno previo..."
 	@docker compose down -v
 	@echo "-> Levantando PostgreSQL en Docker..."
