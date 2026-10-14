@@ -68,4 +68,4 @@ abre una terminal, se ejecuta el comando **git clone** junto con el link del rep
 
 ## Ejecución de parte 3:
 * Para ejecutar esta tercera parte, debe hacerse un clonado del repositorio, obteniendose de esa forma el link, posteriormente en el IDE de preferencia se
-abre una terminal, se ejecuta el comando **git clone** junto con el link del repositorio. Por último, desde la ruta principal del proyecto debe ejecutarse **make test-hurl**.
+abre una terminal, se ejecuta el comando **git clone** junto con el link del repositorio. Por último, desde la ruta principal del proyecto debe ejecutarse **make test-api**.
