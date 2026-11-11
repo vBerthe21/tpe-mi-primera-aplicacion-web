@@ -10,7 +10,10 @@
 * Make, para la automatización de tareas necesarias para realizar el test.
 * Atlas, utilizada para realizar las migraciones de la base de datos.
 * SQLC, usado para la generación de código GO a partir de consultas SQL realizadas en el motor PostgreSQL.
-* Templ, utilizado para generar las vistas dinámicas HTML desde el lado del servidor.
+
+## Herramientas gestionadas automáticamente por Go:
+
+* Templ, utilizado para generar las vistas dinámicas HTML desde el lado del servidor. Se encuentra declarado en go.mod y se ejecuta mediante go tool templ.
 
 ## Estructura del proyecto:
 ```text
