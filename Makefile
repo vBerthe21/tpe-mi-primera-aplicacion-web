@@ -45,6 +45,17 @@ run: generate up apply
 	@echo "-> Iniciando servidor Go..."
 	@go run main.go
 
+# Ejecución completa para la evaluación del TP
+run-app: generate build
+	@echo "-> [1/3] Tareas previas: Limpiando entorno..."
+	@docker compose down -v
+	@echo "-> Levantando BD y esperando..."
+	@$(MAKE) up
+	@echo "-> Aplicando migraciones..."
+	@$(MAKE) apply
+	@echo "-> [2/3] Ejecutando la aplicación (Presiona Ctrl+C para detener)..."
+	@bash -c 'trap "echo \"\n-> [3/3] Tareas posteriores: Limpiando contenedores...\" && docker compose down -v" EXIT; ./tmp/$(APP_NAME)'
+	
 # Ejecución de tests automatizando Docker y las migraciones
 test: generate build
 	@echo "-> Limpiando entorno..."
