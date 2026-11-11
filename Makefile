@@ -32,7 +32,7 @@ build: generate
 	@mkdir -p tmp
 	@go build -o tmp/$(APP_NAME) .
 
-# Levanta la base de datos en Docker
+# Levanta la base de datos en Docker y espera su heatlcheck
 up:
 	@docker compose up -d --wait
 
