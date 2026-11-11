@@ -4,7 +4,7 @@ export
 APP_NAME := my-app
 DB_URL ?= postgres://postgres:postgres@localhost:5432/peliculas_db?sslmode=disable
 
-.PHONY: all generate migrate apply status build test test-api wait-db up run clean down
+.PHONY: all generate migrate apply status build test wait-db up run clean down
 
 all: build
 
