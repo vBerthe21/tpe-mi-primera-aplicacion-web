@@ -1,0 +1,11 @@
+package views
+
+import db "proyecto/db/sqlc"
+
+templ IndexPage(title string, movies []db.Movie) {
+	@Layout(title) {
+		<h1>{ title }</h1>
+		@MovieForm()
+		@MovieList(movies)
+	}
+}

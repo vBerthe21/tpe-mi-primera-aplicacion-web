@@ -1,0 +1,32 @@
+package views
+
+templ MovieForm() {
+	<h2>Agregar Nueva Película</h2>
+	<form method="POST" action="/movies">
+		<label>
+			Nombre (*)
+			<input type="text" name="name" required placeholder="Ej: Inception"/>
+		</label>
+		<label>
+			Director / Autor (*)
+			<input type="text" name="author" required placeholder="Ej: Christopher Nolan"/>
+		</label>
+		<label>
+			Duración en minutos (*)
+			<input type="number" name="duration" min="1" required placeholder="Ej: 148"/>
+		</label>
+		<label>
+			Puntaje (0.0 a 10.0)
+			<input type="number" name="score" step="0.1" min="0" max="10" placeholder="Ej: 8.8"/>
+		</label>
+		<label>
+			Reseña corta
+			<input type="text" name="review" maxlength="500" placeholder="Ej: Una obra maestra del cine de ciencia ficción"/>
+		</label>
+		<label>
+			Descripción detallada
+			<textarea name="description" rows="3" maxlength="500" placeholder="Sinopsis de la película..."></textarea>
+		</label>
+		<button type="submit">Guardar película</button>
+	</form>
+}

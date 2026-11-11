@@ -4,13 +4,13 @@ export
 APP_NAME := my-app
 DB_URL ?= postgres://postgres:postgres@localhost:5432/peliculas_db?sslmode=disable
 
-.PHONY: all generate migrate apply status build test test-api wait-db up run clean
+.PHONY: all generate migrate apply status build test test-api wait-db up run clean down
 
 all: build
 
 generate:
 	@sqlc generate
-	# @templ generate
+	@templ generate
 
 # Función para esperar que PostgreSQL responda de verdad
 wait-db:
@@ -44,8 +44,12 @@ build: generate
 up:
 	@docker compose up -d
 
+# Detiene y limpia la infraestructura
+down:
+	docker compose down -v
+
 # Levanta PostgreSQL (si no está levantado), espera a que esté lista y ejecuta Go
-run: up wait-db apply
+run: generate up wait-db apply
 	@echo "-> Iniciando servidor Go..."
 	@go run main.go
 
@@ -63,24 +67,6 @@ test: generate build
 	@echo "-> Limpiando entorno..."
 	@docker compose down -v
 
-test-api: generate build
-	@echo "-> Limpiando entorno previo..."
-	@docker compose down -v
-	@echo "-> Levantando PostgreSQL en Docker..."
-	@docker compose up -d
-	@$(MAKE) wait-db
-	@echo "-> Aplicando migraciones con Atlas..."
-	@atlas migrate apply --dir "file://db/migrations" --url "$(DB_URL)"
-	@echo "-> Iniciando el servidor Go en segundo plano..."
-	@./tmp/$(APP_NAME) & echo $$! > tmp/server.pid
-	@sleep 1
-	@echo "-> Ejecutando pruebas de integración con Hurl..."
-	@hurl --test requests.hurl; EXIT_CODE=$$?; \
-	echo "-> Apagando servidor Go..."; \
-	kill $$(cat tmp/server.pid) && rm tmp/server.pid; \
-	echo "-> Limpiando contenedores Docker..."; \
-	docker compose down -v; \
-	exit $$EXIT_CODE
 
 clean:
 	@rm -rf tmp

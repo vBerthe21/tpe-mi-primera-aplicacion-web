@@ -1,0 +1,33 @@
+package views
+
+import (
+	"strconv"
+
+	db "proyecto/db/sqlc"
+)
+
+templ MovieList(movies []db.Movie) {
+	<h2>Películas Registradas</h2>
+	if len(movies) == 0 {
+		<p>No hay películas registradas.</p>
+	} else {
+		for _, movie:= range movies {
+			<article>
+				<h3>{ movie.Name }</h3>
+				<p><strong>Director / Autor:</strong> { movie.Author }</p>
+				<p><strong>Duración:</strong> { strconv.Itoa(int(movie.Duration)) } minutos</p>
+				if movie.Score.Valid {
+					<p><strong>Puntaje:</strong> { movie.Score.String }</p>
+				} else {
+					<p><strong>Puntaje:</strong> Sin puntaje</p>
+				}
+				if movie.Review.Valid {
+					<p><strong>Reseña:</strong> { movie.Review.String }</p>
+				}
+				if movie.Description.Valid {
+					<p><strong>Descripción:</strong> { movie.Description.String }</p>
+				}
+			</article>
+		}
+	}
+}
