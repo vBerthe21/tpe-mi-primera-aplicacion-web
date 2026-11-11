@@ -4,7 +4,7 @@ export
 APP_NAME := my-app
 DB_URL ?= postgres://postgres:postgres@localhost:5432/peliculas_db?sslmode=disable
 
-.PHONY: all generate migrate apply status build test wait-db up run clean down
+.PHONY: all generate migrate apply status build test up run clean down
 
 all: build
 
@@ -12,14 +12,6 @@ generate:
 	@sqlc generate
 	@templ generate
 
-# Función para esperar que PostgreSQL responda de verdad
-wait-db:
-	@echo "-> Esperando a que PostgreSQL responda..."
-	@until docker compose exec database pg_isready > /dev/null 2>&1; do \
-		echo "Esperando a la base de datos..."; \
-		sleep 1; \
-	done
-	@echo "-> Base de datos lista."
 
 # Genera una migración: make migrate name=nombre_de_la_migracion
 migrate:
@@ -42,14 +34,14 @@ build: generate
 
 # Levanta la base de datos en Docker
 up:
-	@docker compose up -d
+	@docker compose up -d --wait
 
 # Detiene y limpia la infraestructura
 down:
 	docker compose down -v
 
 # Levanta PostgreSQL (si no está levantado), espera a que esté lista y ejecuta Go
-run: generate up wait-db apply
+run: generate up apply
 	@echo "-> Iniciando servidor Go..."
 	@go run main.go
 
@@ -58,8 +50,7 @@ test: generate build
 	@echo "-> Limpiando entorno..."
 	@docker compose down -v
 	@echo "-> Levantando PostgreSQL..."
-	@docker compose up -d
-	@$(MAKE) wait-db
+	@$(MAKE) up
 	@echo "-> Aplicando migraciones pendientes..."
 	@atlas migrate apply --dir "file://db/migrations" --url "$(DB_URL)"
 	@echo "-> Corriendo pruebas..."
