@@ -30,14 +30,14 @@
 │   ├── layout.templ
 │   ├── movie_form.templ
 │   └── movie_list.templ
+├── .env.example
+├── .gitignore
 ├── docker-compose.yml
 ├── go.mod
 ├── go.sum
 ├── main.go
 ├── Makefile
 ├── readme.md
-├── .env.example
-├── .gitignore
 └── sqlc.yaml
 ```
 
