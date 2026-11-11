@@ -2,13 +2,11 @@ module proyecto
 
 go 1.26.0
 
-require (
-	github.com/a-h/templ v0.3.1100
-	github.com/jackc/pgx/v5 v5.12.0
-)
+require github.com/jackc/pgx/v5 v5.12.0
 
 require (
-	github.com/a-h/parse v0.0.0-20261027111828-db2689052003 // indirect
+	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
+	github.com/a-h/templ v0.3.1100 // indirect
 	github.com/andybalholm/brotli v1.3.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cli/browser v1.3.0 // indirect

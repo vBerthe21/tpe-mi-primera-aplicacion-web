@@ -10,7 +10,7 @@ all: build
 
 generate:
 	@sqlc generate
-	@templ generate
+	@go tool templ generate
 
 
 # Genera una migración: make migrate name=nombre_de_la_migracion
