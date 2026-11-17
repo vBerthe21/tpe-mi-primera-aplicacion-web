@@ -121,6 +121,27 @@ func main() {
 		}
 	})
 
+	mux.HandleFunc("DELETE /movies/{id}", func(w http.ResponseWriter, r *http.Request) {
+		// 1. Obtener el ID de la URL
+		idStr := r.PathValue("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "ID inválido", http.StatusBadRequest)
+			return
+		}
+
+		// 2. Llamar al método DeleteMovie de sqlc
+		err = queries.DeleteMovie(r.Context(), int32(id))
+		if err != nil {
+			log.Printf("error al eliminar película: %v", err)
+			http.Error(w, "Error interno al eliminar", http.StatusInternalServerError)
+			return
+		}
+
+		// 3. Devolver una respuesta vacía con código 200 OK
+		w.WriteHeader(http.StatusOK)
+	})
+
 	port := getEnv("PORT", "8080")
 	if port[0] != ':' {
 		port = ":" + port

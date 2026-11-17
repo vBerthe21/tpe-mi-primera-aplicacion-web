@@ -28,6 +28,13 @@ templ MovieList(movies []db.Movie) {
 				if movie.Description.Valid {
 					<p><strong>Descripción:</strong> { movie.Description.String }</p>
 				}
+                <button 
+                    hx-delete={ "/movies/" + strconv.Itoa(int(movie.ID)) } 
+                    hx-target="closest article" 
+                    hx-swap="outerHTML" 
+                    hx-confirm="¿Estás seguro de eliminar esta película?">
+                    Borrar
+                </button>
 			</article>
 		}
 	}
