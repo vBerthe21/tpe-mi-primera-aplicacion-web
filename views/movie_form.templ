@@ -2,7 +2,7 @@ package views
 
 templ MovieForm() {
 	<h2>Agregar Nueva Película</h2>
-	<form method="POST" action="/movies">
+	<form hx-post="/movies" hx-target="#movie-list-container" hx-swap="outerHTML">
 		<label>
 			Nombre (*)
 			<input type="text" name="name" required placeholder="Ej: Inception"/>

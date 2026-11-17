@@ -7,6 +7,7 @@ import (
 )
 
 templ MovieList(movies []db.Movie) {
+	<div id="movie-list-container">
 	<h2>Películas Registradas</h2>
 	if len(movies) == 0 {
 		<p>No hay películas registradas.</p>
@@ -30,4 +31,5 @@ templ MovieList(movies []db.Movie) {
 			</article>
 		}
 	}
+	</div>
 }

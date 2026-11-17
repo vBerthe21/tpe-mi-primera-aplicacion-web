@@ -105,7 +105,20 @@ func main() {
 			return
 		}
 
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		// 1. Obtenemos la lista actualizada de películas desde la base de datos
+		movies, err := queries.ListMovie(r.Context())
+		if err != nil {
+			log.Printf("error al listar películas actualizadas: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+
+		// 2. Renderizamos y devolvemos ÚNICAMENTE el fragmento HTML de la lista
+		err = views.MovieList(movies).Render(r.Context(), w)
+		if err != nil {
+			log.Printf("error al renderizar la lista: %v", err)
+			http.Error(w, "error interno al renderizar", http.StatusInternalServerError)
+		}
 	})
 
 	port := getEnv("PORT", "8080")
