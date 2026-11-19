@@ -40,3 +40,14 @@ func ValidateMovie(m MovieInput) error {
 
 	return nil
 }
+
+func ValidateGenre(name string) error {
+	name = strings.TrimSpace(name)
+	switch {
+	case name == "":
+		return errors.New("el nombre del género es obligatorio")
+	case utf8.RuneCountInString(name) > 255:
+		return errors.New("el nombre del género no puede superar los 255 caracteres")
+	}
+	return nil
+}
