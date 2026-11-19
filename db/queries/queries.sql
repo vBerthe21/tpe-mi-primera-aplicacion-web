@@ -54,3 +54,20 @@ WHERE id = $1;
 -- name: DeleteGenre :exec
 DELETE FROM genre
 WHERE id = $1;
+
+-- name: ListGenresByMovie :many
+SELECT g.id, g.name_genre
+FROM genre g
+JOIN movie_genre mg ON mg.genre_id = g.id
+WHERE mg.movie_id = $1
+ORDER BY g.name_genre;
+
+-- name: ListMovieGenres :many
+SELECT mg.movie_id, g.id AS genre_id, g.name_genre
+FROM movie_genre mg
+JOIN genre g ON g.id = mg.genre_id
+ORDER BY g.name_genre;
+
+-- name: RemoveAllMovieGenres :exec
+DELETE FROM movie_genre
+WHERE movie_id = $1;
