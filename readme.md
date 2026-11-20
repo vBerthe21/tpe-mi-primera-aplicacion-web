@@ -10,6 +10,7 @@
 * Make, para la automatización de tareas necesarias para realizar el test.
 * Atlas, utilizada para realizar las migraciones de la base de datos.
 * SQLC, usado para la generación de código GO a partir de consultas SQL realizadas en el motor PostgreSQL.
+* Conexión a internet para cargar Pico.css y HTMX desde un CDN (se incluyen en `views/layout.templ`).
 
 ## Herramientas gestionadas automáticamente por Go:
 
@@ -19,6 +20,7 @@
 ```text
 ├── db/
 │   ├── migrations/
+│   │   ├── 20260910145033_init.sql
 │   │   └── atlas.sum
 │   ├── queries/
 │   │   └── queries.sql
@@ -29,8 +31,10 @@
 ├── logic/
 │   └── movies.go
 ├── views/
+│   ├── genre_form.templ
 │   ├── index.templ
 │   ├── layout.templ
+│   ├── movie_edit.templ
 │   ├── movie_form.templ
 │   └── movie_list.templ
 ├── .env.example
@@ -40,7 +44,7 @@
 ├── go.sum
 ├── main.go
 ├── Makefile
-├── readme.md
+├── README.md
 └── sqlc.yaml
 ```
 
