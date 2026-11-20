@@ -1,0 +1,40 @@
+package views
+
+import (
+	db "proyecto/db/sqlc"
+	"strconv"
+)
+
+templ GenreForm() {
+	<h2>Géneros</h2>
+	<form hx-post="/genres" hx-target="#genre-list-container" hx-swap="outerHTML">
+		<label>
+			Nuevo género
+			<input type="text" name="name" required maxlength="255" placeholder="Ej: Drama"/>
+		</label>
+		<button type="submit">Agregar género</button>
+	</form>
+}
+
+templ GenreList(genres []db.Genre) {
+	<div id="genre-list-container">
+		if len(genres) == 0 {
+			<p>No hay géneros registrados.</p>
+		} else {
+			<ul>
+				for _, genre := range genres {
+					<li>
+						{ genre.NameGenre }
+						<button
+							hx-delete={ "/genres/" + strconv.Itoa(int(genre.ID)) }
+							hx-target="closest li"
+							hx-swap="outerHTML"
+							hx-confirm="¿Estás seguro de eliminar este género?">
+							Borrar
+						</button>
+					</li>
+				}
+			</ul>
+		}
+	</div>
+}

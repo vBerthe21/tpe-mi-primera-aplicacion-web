@@ -57,8 +57,14 @@ func main() {
 			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
 			return
 		}
+		genres, err := queries.ListGenre(r.Context())
+		if err != nil {
+			log.Printf("error al listar géneros: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		err = views.IndexPage("CINE+ | Catálogo de Películas", movies).Render(r.Context(), w)
+		err = views.IndexPage("CINE+ | Catálogo de Películas", movies, genres).Render(r.Context(), w)
 		if err != nil {
 			log.Printf("error al renderizar: %v", err)
 		}
@@ -154,6 +160,35 @@ func main() {
 
 		// 3. Devolver una respuesta vacía con código 200 OK
 		w.WriteHeader(http.StatusOK)
+	})
+
+	mux.HandleFunc("POST /genres", func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "formulario inválido", http.StatusBadRequest)
+			return
+		}
+
+		name := strings.TrimSpace(r.FormValue("name"))
+		if err := logic.ValidateGenre(name); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		_, err := queries.CreateGenre(r.Context(), name)
+		if err != nil {
+			log.Printf("error al crear género: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+
+		// Devolvemos solo el fragmento con la lista de géneros actualizada.
+		genres, err := queries.ListGenre(r.Context())
+		if err != nil {
+			log.Printf("error al listar géneros: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+		views.GenreList(genres).Render(r.Context(), w)
 	})
 
 	mux.HandleFunc("DELETE /genres/{id}", func(w http.ResponseWriter, r *http.Request) {
