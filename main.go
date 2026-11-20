@@ -90,7 +90,7 @@ func main() {
 			return
 		}
 
-		_, err = queries.CreateMovie(r.Context(), db.CreateMovieParams{
+		newMovie, err := queries.CreateMovie(r.Context(), db.CreateMovieParams{
 			Name:        in.Name,
 			Author:      in.Author,
 			Duration:    in.Duration,
@@ -103,6 +103,20 @@ func main() {
 			log.Printf("error al crear película: %v", err)
 			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
 			return
+		}
+
+		// Vincular los géneros tildados en el formulario (name="genres").
+		for _, g := range r.Form["genres"] {
+			genreID, err := strconv.Atoi(g)
+			if err == nil {
+				_, err = queries.AddMovieGenre(r.Context(), db.AddMovieGenreParams{
+					MovieID: newMovie.ID,
+					GenreID: int32(genreID),
+				})
+				if err != nil {
+					log.Printf("error al asociar género %d a la película %d: %v", genreID, newMovie.ID, err)
+				}
+			}
 		}
 
 		// 1. Obtenemos la lista actualizada de películas desde la base de datos
