@@ -142,6 +142,26 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
+	mux.HandleFunc("DELETE /genres/{id}", func(w http.ResponseWriter, r *http.Request) {
+		// 1. Obtener el ID de la URL
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "ID inválido", http.StatusBadRequest)
+			return
+		}
+
+		// 2. Llamar al método DeleteGenre de sqlc
+		err = queries.DeleteGenre(r.Context(), int32(id))
+		if err != nil {
+			log.Printf("error al eliminar género: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+
+		// 3. Respuesta vacía con 200 OK (HTMX quita el elemento del DOM)
+		w.WriteHeader(http.StatusOK)
+	})
+
 	port := getEnv("PORT", "8080")
 	if port[0] != ':' {
 		port = ":" + port
