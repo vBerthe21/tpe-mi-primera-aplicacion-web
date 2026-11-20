@@ -2,11 +2,11 @@ package views
 
 import (
 	"strconv"
-
+	"strings"
 	db "proyecto/db/sqlc"
 )
 
-templ MovieList(movies []db.Movie) {
+templ MovieList(movies []db.Movie, genresByMovie map[int32][]string) {
 	<div id="movie-list-container">
 	<h2>Películas Registradas</h2>
 	if len(movies) == 0 {
@@ -27,6 +27,9 @@ templ MovieList(movies []db.Movie) {
 				}
 				if movie.Description.Valid {
 					<p><strong>Descripción:</strong> { movie.Description.String }</p>
+				}
+				if len(genresByMovie[movie.ID]) > 0 {
+					<p><strong>Géneros:</strong> { strings.Join(genresByMovie[movie.ID], ", ") }</p>
 				}
                 <button 
                     hx-delete={ "/movies/" + strconv.Itoa(int(movie.ID)) } 

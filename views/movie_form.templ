@@ -1,6 +1,10 @@
 package views
 
-templ MovieForm() {
+import (
+	db "proyecto/db/sqlc"
+)
+
+templ MovieForm(genres []db.Genre) {
 	<h2>Agregar Nueva Película</h2>
 	<form hx-post="/movies" hx-target="#movie-list-container" hx-swap="outerHTML">
 		<label>
@@ -27,6 +31,7 @@ templ MovieForm() {
 			Descripción detallada
 			<textarea name="description" rows="3" maxlength="500" placeholder="Sinopsis de la película..."></textarea>
 		</label>
+		@GenreCheckboxes(genres)
 		<button type="submit">Guardar película</button>
 	</form>
 }

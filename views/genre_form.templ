@@ -16,8 +16,11 @@ templ GenreForm() {
 	</form>
 }
 
-templ GenreList(genres []db.Genre) {
+templ GenreList(genres []db.Genre, msg string) {
 	<div id="genre-list-container">
+		if msg != "" {
+			<p>{ msg }</p>
+		}
 		if len(genres) == 0 {
 			<p>No hay géneros registrados.</p>
 		} else {
@@ -36,5 +39,31 @@ templ GenreList(genres []db.Genre) {
 				}
 			</ul>
 		}
+	</div>
+}
+
+templ GenreOptions(genres []db.Genre) {
+	if len(genres) > 0 {
+		<fieldset>
+			<legend>Géneros</legend>
+			for _, genre := range genres {
+				<label>
+					<input type="checkbox" name="genres" value={ strconv.Itoa(int(genre.ID)) }/>
+					{ genre.NameGenre }
+				</label>
+			}
+		</fieldset>
+	}
+}
+
+templ GenreCheckboxes(genres []db.Genre) {
+	<div id="genre-checkboxes">
+		@GenreOptions(genres)
+	</div>
+}
+
+templ GenreCheckboxesOOB(genres []db.Genre) {
+	<div id="genre-checkboxes" hx-swap-oob="true">
+		@GenreOptions(genres)
 	</div>
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -11,10 +12,10 @@ import (
 	"proyecto/logic"
 	"proyecto/views"
 
-	_ "github.com/lib/pq"
-
 	"strconv"
 	"strings"
+
+	_ "github.com/lib/pq"
 )
 
 func getEnv(key, fallback string) string { // Función para obtener variables de entorno.
@@ -27,6 +28,19 @@ func getEnv(key, fallback string) string { // Función para obtener variables de
 // nullStr convierte una cadena vacía en NULL para la base.
 func nullStr(s string) sql.NullString {
 	return sql.NullString{String: s, Valid: s != ""}
+}
+
+// loadGenresByMovie devuelve, para cada id de película, los nombres de sus géneros.
+func loadGenresByMovie(ctx context.Context, q *db.Queries) (map[int32][]string, error) {
+	rows, err := q.ListMovieGenres(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[int32][]string)
+	for _, row := range rows {
+		result[row.MovieID] = append(result[row.MovieID], row.NameGenre)
+	}
+	return result, nil
 }
 
 func main() {
@@ -63,8 +77,14 @@ func main() {
 			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
 			return
 		}
+		byMovie, err := loadGenresByMovie(r.Context(), queries)
+		if err != nil {
+			log.Printf("error al listar géneros de las películas: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		err = views.IndexPage("CINE+ | Catálogo de Películas", movies, genres).Render(r.Context(), w)
+		err = views.IndexPage("CINE+ | Catálogo de Películas", movies, genres, byMovie).Render(r.Context(), w)
 		if err != nil {
 			log.Printf("error al renderizar: %v", err)
 		}
@@ -133,8 +153,15 @@ func main() {
 			return
 		}
 
+		byMovie, err := loadGenresByMovie(r.Context(), queries)
+		if err != nil {
+			log.Printf("error al listar géneros de las películas: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+
 		// 2. Renderizamos y devolvemos ÚNICAMENTE el fragmento HTML de la lista
-		err = views.MovieList(movies).Render(r.Context(), w)
+		err = views.MovieList(movies, byMovie).Render(r.Context(), w)
 		if err != nil {
 			log.Printf("error al renderizar la lista: %v", err)
 			http.Error(w, "error interno al renderizar", http.StatusInternalServerError)
@@ -167,28 +194,42 @@ func main() {
 			http.Error(w, "formulario inválido", http.StatusBadRequest)
 			return
 		}
-
 		name := strings.TrimSpace(r.FormValue("name"))
-		if err := logic.ValidateGenre(name); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
 
-		_, err := queries.CreateGenre(r.Context(), name)
-		if err != nil {
-			log.Printf("error al crear género: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		// Devolvemos solo el fragmento con la lista de géneros actualizada.
 		genres, err := queries.ListGenre(r.Context())
 		if err != nil {
 			log.Printf("error al listar géneros: %v", err)
 			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
 			return
 		}
-		views.GenreList(genres).Render(r.Context(), w)
+
+		// Errores de validación: devolvemos la lista con un mensaje, así no se pierde el contenedor.
+		if err := logic.ValidateGenre(name); err != nil {
+			views.GenreList(genres, err.Error()).Render(r.Context(), w)
+			return
+		}
+		for _, g := range genres {
+			if strings.EqualFold(g.NameGenre, name) {
+				views.GenreList(genres, "el género ya existe").Render(r.Context(), w)
+				return
+			}
+		}
+
+		_, err = queries.CreateGenre(r.Context(), name)
+		if err != nil {
+			log.Printf("error al crear género: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+
+		genres, err = queries.ListGenre(r.Context())
+		if err != nil {
+			log.Printf("error al listar géneros: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+		views.GenreList(genres, "").Render(r.Context(), w)
+		views.GenreCheckboxesOOB(genres).Render(r.Context(), w)
 	})
 
 	mux.HandleFunc("DELETE /genres/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -207,8 +248,14 @@ func main() {
 			return
 		}
 
-		// 3. Respuesta vacía con 200 OK (HTMX quita el elemento del DOM)
-		w.WriteHeader(http.StatusOK)
+		// 3. Devolvemos solo los checkboxes actualizados (OOB); la fila se quita sola.
+		genres, err := queries.ListGenre(r.Context())
+		if err != nil {
+			log.Printf("error al listar géneros: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+		views.GenreCheckboxesOOB(genres).Render(r.Context(), w)
 	})
 
 	port := getEnv("PORT", "8080")

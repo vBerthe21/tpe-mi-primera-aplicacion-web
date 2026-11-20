@@ -2,12 +2,12 @@ package views
 
 import db "proyecto/db/sqlc"
 
-templ IndexPage(title string, movies []db.Movie, genres []db.Genre) {
+templ IndexPage(title string, movies []db.Movie, genres []db.Genre, genresByMovie map[int32][]string) {
 	@Layout(title) {
 		<h1>{ title }</h1>
-		@MovieForm()
-		@MovieList(movies)
+		@MovieForm(genres)
+		@MovieList(movies, genresByMovie)
 		@GenreForm()
-		@GenreList(genres)
+		@GenreList(genres, "")
 	}
 }
