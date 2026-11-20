@@ -189,6 +189,123 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
+	mux.HandleFunc("GET /movies/{id}/edit", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "ID inválido", http.StatusBadRequest)
+			return
+		}
+
+		movie, err := queries.GetMovie(r.Context(), int32(id))
+		if err == sql.ErrNoRows {
+			http.Error(w, "película no encontrada", http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			log.Printf("error al obtener película: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+
+		genres, err := queries.ListGenre(r.Context())
+		if err != nil {
+			log.Printf("error al listar géneros: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+
+		// Géneros que la película ya tiene (para dejarlos tildados).
+		current, err := queries.ListGenresByMovie(r.Context(), int32(id))
+		if err != nil {
+			log.Printf("error al listar géneros de la película: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+		selected := make(map[int32]bool)
+		for _, g := range current {
+			selected[g.ID] = true
+		}
+
+		views.MovieEditForm(movie, genres, selected).Render(r.Context(), w)
+	})
+
+	mux.HandleFunc("PUT /movies/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "ID inválido", http.StatusBadRequest)
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "formulario inválido", http.StatusBadRequest)
+			return
+		}
+
+		duracion, err := strconv.ParseInt(r.FormValue("duration"), 10, 32)
+		if err != nil {
+			http.Error(w, "la duración debe ser un número entero", http.StatusBadRequest)
+			return
+		}
+
+		in := logic.MovieInput{
+			Name:        strings.TrimSpace(r.FormValue("name")),
+			Author:      strings.TrimSpace(r.FormValue("author")),
+			Duration:    int32(duracion),
+			Score:       strings.TrimSpace(r.FormValue("score")),
+			Review:      strings.TrimSpace(r.FormValue("review")),
+			Description: strings.TrimSpace(r.FormValue("description")),
+		}
+		if err := logic.ValidateMovie(in); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		err = queries.UpdateMovie(r.Context(), db.UpdateMovieParams{
+			ID:          int32(id),
+			Name:        in.Name,
+			Author:      in.Author,
+			Duration:    in.Duration,
+			Score:       nullStr(in.Score),
+			Review:      nullStr(in.Review),
+			Description: nullStr(in.Description),
+		})
+		if err != nil {
+			log.Printf("error al actualizar película: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+
+		// Reemplazar los géneros: se borran todos y se vuelven a agregar los tildados.
+		if err := queries.RemoveAllMovieGenres(r.Context(), int32(id)); err != nil {
+			log.Printf("error al quitar géneros de la película %d: %v", id, err)
+		}
+		for _, g := range r.Form["genres"] {
+			genreID, err := strconv.Atoi(g)
+			if err == nil {
+				_, err = queries.AddMovieGenre(r.Context(), db.AddMovieGenreParams{
+					MovieID: int32(id),
+					GenreID: int32(genreID),
+				})
+				if err != nil {
+					log.Printf("error al asociar género %d a la película %d: %v", genreID, id, err)
+				}
+			}
+		}
+
+		movies, err := queries.ListMovie(r.Context())
+		if err != nil {
+			log.Printf("error al listar películas: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+		byMovie, err := loadGenresByMovie(r.Context(), queries)
+		if err != nil {
+			log.Printf("error al listar géneros de las películas: %v", err)
+			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+			return
+		}
+		views.MovieList(movies, byMovie).Render(r.Context(), w)
+	})
+
 	mux.HandleFunc("POST /genres", func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "formulario inválido", http.StatusBadRequest)

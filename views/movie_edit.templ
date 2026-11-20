@@ -1,0 +1,51 @@
+package views
+
+import (
+	db "proyecto/db/sqlc"
+	"strconv"
+)
+
+templ MovieEditForm(movie db.Movie, genres []db.Genre, selected map[int32]bool) {
+	<article>
+		<h3>Editar película</h3>
+		<form hx-put={ "/movies/" + strconv.Itoa(int(movie.ID)) } hx-target="#movie-list-container" hx-swap="outerHTML">
+			<label>
+				Nombre (*)
+				<input type="text" name="name" required value={ movie.Name }/>
+			</label>
+			<label>
+				Director / Autor (*)
+				<input type="text" name="author" required value={ movie.Author }/>
+			</label>
+			<label>
+				Duración en minutos (*)
+				<input type="number" name="duration" min="1" required value={ strconv.Itoa(int(movie.Duration)) }/>
+			</label>
+			<label>
+				Puntaje (0.0 a 10.0)
+				<input type="number" name="score" step="0.1" min="0" max="10" value={ movie.Score.String }/>
+			</label>
+			<label>
+				Reseña corta
+				<input type="text" name="review" maxlength="500" value={ movie.Review.String }/>
+			</label>
+			<label>
+				Descripción detallada
+				<textarea name="description" rows="3" maxlength="500">{ movie.Description.String }</textarea>
+			</label>
+			if len(genres) > 0 {
+				<fieldset>
+					<legend>Géneros</legend>
+					for _, genre := range genres {
+						<label>
+							<input type="checkbox" name="genres" value={ strconv.Itoa(int(genre.ID)) } checked?={ selected[genre.ID] }/>
+							{ genre.NameGenre }
+						</label>
+					}
+				</fieldset>
+			}
+			<button type="submit">Guardar cambios</button>
+			<a href="/" role="button" class="secondary">Cancelar</a>
+		</form>
+	</article>
+}

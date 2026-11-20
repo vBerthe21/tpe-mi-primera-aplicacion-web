@@ -31,6 +31,12 @@ templ MovieList(movies []db.Movie, genresByMovie map[int32][]string) {
 				if len(genresByMovie[movie.ID]) > 0 {
 					<p><strong>Géneros:</strong> { strings.Join(genresByMovie[movie.ID], ", ") }</p>
 				}
+				<button
+					hx-get={ "/movies/" + strconv.Itoa(int(movie.ID)) + "/edit" }
+					hx-target="closest article"
+					hx-swap="outerHTML">
+					Editar
+				</button>
                 <button 
                     hx-delete={ "/movies/" + strconv.Itoa(int(movie.ID)) } 
                     hx-target="closest article" 
