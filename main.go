@@ -1,50 +1,26 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	db "proyecto/db/sqlc" // Import de sqlc.
-	"proyecto/logic"
-	"proyecto/views"
-
-	"strconv"
-	"strings"
+	db "proyecto/db/sqlc"
+	"proyecto/handlers"
 
 	_ "github.com/lib/pq"
 )
 
-func getEnv(key, fallback string) string { // Función para obtener variables de entorno.
+func getEnv(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
 	return fallback
 }
 
-// nullStr convierte una cadena vacía en NULL para la base.
-func nullStr(s string) sql.NullString {
-	return sql.NullString{String: s, Valid: s != ""}
-}
-
-// loadGenresByMovie devuelve, para cada id de película, los nombres de sus géneros.
-func loadGenresByMovie(ctx context.Context, q *db.Queries) (map[int32][]string, error) {
-	rows, err := q.ListMovieGenres(ctx)
-	if err != nil {
-		return nil, err
-	}
-	result := make(map[int32][]string)
-	for _, row := range rows {
-		result[row.MovieID] = append(result[row.MovieID], row.NameGenre)
-	}
-	return result, nil
-}
-
 func main() {
-	// Cadena de conexión obtenida del entorno.
 	connStr := getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/peliculas_db?sslmode=disable")
 
 	// 1. Abrir conexión con la base de datos
@@ -60,321 +36,25 @@ func main() {
 	}
 	fmt.Println("¡Conexión a PostgreSQL exitosa!")
 
-	mux := http.NewServeMux()
+	// 3. Inyectar dependencias (queries -> handlers)
 	queries := db.New(dbConn)
+	h := handlers.New(queries)
 
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		// 1. obtener las películas con queries.ListMovie(...)
-		movies, err := queries.ListMovie(r.Context())
-		if err != nil {
-			log.Printf("error al listar películas: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-		genres, err := queries.ListGenre(r.Context())
-		if err != nil {
-			log.Printf("error al listar géneros: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-		byMovie, err := loadGenresByMovie(r.Context(), queries)
-		if err != nil {
-			log.Printf("error al listar géneros de las películas: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		err = views.IndexPage("CINE+ | Catálogo de Películas", movies, genres, byMovie).Render(r.Context(), w)
-		if err != nil {
-			log.Printf("error al renderizar: %v", err)
-		}
-	})
+	// 4. Registrar rutas
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /{$}", h.Index)
 
-	mux.HandleFunc("POST /movies", func(w http.ResponseWriter, r *http.Request) {
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "formulario inválido", http.StatusBadRequest)
-			return
-		}
+	// Películas
+	mux.HandleFunc("POST /movies", h.CreateMovie)
+	mux.HandleFunc("DELETE /movies/{id}", h.DeleteMovie)
+	mux.HandleFunc("GET /movies/{id}/edit", h.EditMovieForm)
+	mux.HandleFunc("PUT /movies/{id}", h.UpdateMovie)
 
-		duracion, err := strconv.ParseInt(r.FormValue("duration"), 10, 32)
-		if err != nil {
-			http.Error(w, "la duración debe ser un número entero", http.StatusBadRequest)
-			return
-		}
+	// Géneros
+	mux.HandleFunc("POST /genres", h.CreateGenre)
+	mux.HandleFunc("DELETE /genres/{id}", h.DeleteGenre)
 
-		in := logic.MovieInput{
-			Name:        strings.TrimSpace(r.FormValue("name")),
-			Author:      strings.TrimSpace(r.FormValue("author")),
-			Duration:    int32(duracion),
-			Score:       strings.TrimSpace(r.FormValue("score")),
-			Review:      strings.TrimSpace(r.FormValue("review")),
-			Description: strings.TrimSpace(r.FormValue("description")),
-		}
-
-		if err := logic.ValidateMovie(in); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		newMovie, err := queries.CreateMovie(r.Context(), db.CreateMovieParams{
-			Name:        in.Name,
-			Author:      in.Author,
-			Duration:    in.Duration,
-			Score:       nullStr(in.Score),
-			Review:      nullStr(in.Review),
-			Description: nullStr(in.Description),
-		})
-
-		if err != nil {
-			log.Printf("error al crear película: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		// Vincular los géneros tildados en el formulario (name="genres").
-		for _, g := range r.Form["genres"] {
-			genreID, err := strconv.Atoi(g)
-			if err == nil {
-				_, err = queries.AddMovieGenre(r.Context(), db.AddMovieGenreParams{
-					MovieID: newMovie.ID,
-					GenreID: int32(genreID),
-				})
-				if err != nil {
-					log.Printf("error al asociar género %d a la película %d: %v", genreID, newMovie.ID, err)
-				}
-			}
-		}
-
-		// 1. Obtenemos la lista actualizada de películas desde la base de datos
-		movies, err := queries.ListMovie(r.Context())
-		if err != nil {
-			log.Printf("error al listar películas actualizadas: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		byMovie, err := loadGenresByMovie(r.Context(), queries)
-		if err != nil {
-			log.Printf("error al listar géneros de las películas: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		// 2. Renderizamos y devolvemos ÚNICAMENTE el fragmento HTML de la lista
-		err = views.MovieList(movies, byMovie).Render(r.Context(), w)
-		if err != nil {
-			log.Printf("error al renderizar la lista: %v", err)
-			http.Error(w, "error interno al renderizar", http.StatusInternalServerError)
-		}
-	})
-
-	mux.HandleFunc("DELETE /movies/{id}", func(w http.ResponseWriter, r *http.Request) {
-		// 1. Obtener el ID de la URL
-		idStr := r.PathValue("id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			http.Error(w, "ID inválido", http.StatusBadRequest)
-			return
-		}
-
-		// 2. Llamar al método DeleteMovie de sqlc
-		err = queries.DeleteMovie(r.Context(), int32(id))
-		if err != nil {
-			log.Printf("error al eliminar película: %v", err)
-			http.Error(w, "Error interno al eliminar", http.StatusInternalServerError)
-			return
-		}
-
-		// 3. Devolver una respuesta vacía con código 200 OK
-		w.WriteHeader(http.StatusOK)
-	})
-
-	mux.HandleFunc("GET /movies/{id}/edit", func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.Atoi(r.PathValue("id"))
-		if err != nil {
-			http.Error(w, "ID inválido", http.StatusBadRequest)
-			return
-		}
-
-		movie, err := queries.GetMovie(r.Context(), int32(id))
-		if err == sql.ErrNoRows {
-			http.Error(w, "película no encontrada", http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			log.Printf("error al obtener película: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		genres, err := queries.ListGenre(r.Context())
-		if err != nil {
-			log.Printf("error al listar géneros: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		// Géneros que la película ya tiene (para dejarlos tildados).
-		current, err := queries.ListGenresByMovie(r.Context(), int32(id))
-		if err != nil {
-			log.Printf("error al listar géneros de la película: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-		selected := make(map[int32]bool)
-		for _, g := range current {
-			selected[g.ID] = true
-		}
-
-		views.MovieEditForm(movie, genres, selected).Render(r.Context(), w)
-	})
-
-	mux.HandleFunc("PUT /movies/{id}", func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.Atoi(r.PathValue("id"))
-		if err != nil {
-			http.Error(w, "ID inválido", http.StatusBadRequest)
-			return
-		}
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "formulario inválido", http.StatusBadRequest)
-			return
-		}
-
-		duracion, err := strconv.ParseInt(r.FormValue("duration"), 10, 32)
-		if err != nil {
-			http.Error(w, "la duración debe ser un número entero", http.StatusBadRequest)
-			return
-		}
-
-		in := logic.MovieInput{
-			Name:        strings.TrimSpace(r.FormValue("name")),
-			Author:      strings.TrimSpace(r.FormValue("author")),
-			Duration:    int32(duracion),
-			Score:       strings.TrimSpace(r.FormValue("score")),
-			Review:      strings.TrimSpace(r.FormValue("review")),
-			Description: strings.TrimSpace(r.FormValue("description")),
-		}
-		if err := logic.ValidateMovie(in); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		err = queries.UpdateMovie(r.Context(), db.UpdateMovieParams{
-			ID:          int32(id),
-			Name:        in.Name,
-			Author:      in.Author,
-			Duration:    in.Duration,
-			Score:       nullStr(in.Score),
-			Review:      nullStr(in.Review),
-			Description: nullStr(in.Description),
-		})
-		if err != nil {
-			log.Printf("error al actualizar película: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		// Reemplazar los géneros: se borran todos y se vuelven a agregar los tildados.
-		if err := queries.RemoveAllMovieGenres(r.Context(), int32(id)); err != nil {
-			log.Printf("error al quitar géneros de la película %d: %v", id, err)
-		}
-		for _, g := range r.Form["genres"] {
-			genreID, err := strconv.Atoi(g)
-			if err == nil {
-				_, err = queries.AddMovieGenre(r.Context(), db.AddMovieGenreParams{
-					MovieID: int32(id),
-					GenreID: int32(genreID),
-				})
-				if err != nil {
-					log.Printf("error al asociar género %d a la película %d: %v", genreID, id, err)
-				}
-			}
-		}
-
-		movies, err := queries.ListMovie(r.Context())
-		if err != nil {
-			log.Printf("error al listar películas: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-		byMovie, err := loadGenresByMovie(r.Context(), queries)
-		if err != nil {
-			log.Printf("error al listar géneros de las películas: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-		views.MovieList(movies, byMovie).Render(r.Context(), w)
-	})
-
-	mux.HandleFunc("POST /genres", func(w http.ResponseWriter, r *http.Request) {
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "formulario inválido", http.StatusBadRequest)
-			return
-		}
-		name := strings.TrimSpace(r.FormValue("name"))
-
-		genres, err := queries.ListGenre(r.Context())
-		if err != nil {
-			log.Printf("error al listar géneros: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		// Errores de validación: devolvemos la lista con un mensaje, así no se pierde el contenedor.
-		if err := logic.ValidateGenre(name); err != nil {
-			views.GenreList(genres, err.Error()).Render(r.Context(), w)
-			return
-		}
-		for _, g := range genres {
-			if strings.EqualFold(g.NameGenre, name) {
-				views.GenreList(genres, "el género ya existe").Render(r.Context(), w)
-				return
-			}
-		}
-
-		_, err = queries.CreateGenre(r.Context(), name)
-		if err != nil {
-			log.Printf("error al crear género: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		genres, err = queries.ListGenre(r.Context())
-		if err != nil {
-			log.Printf("error al listar géneros: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-		views.GenreList(genres, "").Render(r.Context(), w)
-		views.GenreCheckboxesOOB(genres).Render(r.Context(), w)
-	})
-
-	mux.HandleFunc("DELETE /genres/{id}", func(w http.ResponseWriter, r *http.Request) {
-		// 1. Obtener el ID de la URL
-		id, err := strconv.Atoi(r.PathValue("id"))
-		if err != nil {
-			http.Error(w, "ID inválido", http.StatusBadRequest)
-			return
-		}
-
-		// 2. Llamar al método DeleteGenre de sqlc
-		err = queries.DeleteGenre(r.Context(), int32(id))
-		if err != nil {
-			log.Printf("error al eliminar género: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-
-		// 3. Devolvemos solo los checkboxes actualizados (OOB); la fila se quita sola.
-		genres, err := queries.ListGenre(r.Context())
-		if err != nil {
-			log.Printf("error al listar géneros: %v", err)
-			http.Error(w, "error interno del servidor", http.StatusInternalServerError)
-			return
-		}
-		views.GenreCheckboxesOOB(genres).Render(r.Context(), w)
-	})
-
+	// 5. Levantar el servidor
 	port := getEnv("PORT", "8080")
 	if port[0] != ':' {
 		port = ":" + port
