@@ -1,7 +1,7 @@
 # Nombre del Proyecto: CINE+
 # Integrantes: Berthelot Valentin; Rodriguez Giacomasso Santiago.
 
-# Entrega TP5: Mi Primera Aplicación Web.
+# Entrega TP6: Mi Primera Aplicación Web.
 
 ## Para realizar la automatización y persistencia del proyecto, se debe contar con los siguientes requisitos:
 * Go en una versión >= 1.25.0.
@@ -28,6 +28,10 @@
 │   │   └── schema.sql
 │   └── sqlc/
 │       └── db_test.go
+├── handlers/
+│   ├── genres.go
+│   ├── handler.go
+│   └── movies.go
 ├── logic/
 │   └── movies.go
 ├── views/
@@ -61,8 +65,25 @@ Las modificaciones al esquema se realizan en db/schema/schema.sql y se migran a 
 Las consultas a la base de datos se escriben en SQL en db/queries/queries.sql.
 SQLC lee las consultas y genera el código en Go dentro de db/sqlc/
 
+## Arquitectura del proyecto:
 
-## Ejecución de TP5: SSR con Templ
+main.go: punto de entrada de la aplicación. Lee las variables de entorno, abre la conexión con PostgreSQL, inyecta *db.Queries en handlers y registra las rutas HTTP.
+
+handlers/: controladores HTTP separados por responsabilidad (handler.go para la carga inicial y helpers comunes, movies.go para el CRUD de películas y genres.go para la gestión de géneros). Devuelven fragmentos HTML para las peticiones HTMX.
+
+logic/: validaciones puras de reglas de negocio (ValidateMovie y ValidateGenre), desacopladas de HTTP y de la base de datos.
+
+views/: componentes .templ renderizados desde el servidor (layout base, formularios, listados, edición inline de películas y fragmentos con hx-swap-oob para sincronizar múltiples secciones del DOM).
+
+db/: esquema, migraciones de Atlas, consultas SQL y código tipado autogenerado por SQLC.
+
+## Funcionalidades con HTMX:
+
+Películas: creación (POST /movies), edición inline (GET /movies/{id}/edit y PUT /movies/{id}) y borrado con confirmación (DELETE /movies/{id}) sin recargar la página.
+
+Géneros: creación (POST /genres) con validación de duplicados y borrado (DELETE /genres/{id}). Mediante Out-of-Band Swaps (hx-swap-oob="true"), al crear o eliminar un género se actualizan simultáneamente la lista de géneros, los checkboxes del formulario de películas y las tarjetas afectadas en el catálogo.
+
+## Ejecución de TP6: Interfaces Reactivas con HTMX
 Todo el ciclo de vida del entorno (compilación, generación de código, levantamiento de bases de datos, migraciones y limpieza) está orquestado dentro del archivo `Makefile` para facilitar su evaluación.
 
 Para probar el proyecto completo:
