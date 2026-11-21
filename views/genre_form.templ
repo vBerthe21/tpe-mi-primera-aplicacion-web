@@ -30,7 +30,7 @@ templ GenreList(genres []db.Genre, msg string) {
 						{ genre.NameGenre }
 						<button
 							hx-delete={ "/genres/" + strconv.Itoa(int(genre.ID)) }
-							hx-target="closest li"
+							hx-target="#genre-list-container"
 							hx-swap="outerHTML"
 							hx-confirm="¿Estás seguro de eliminar este género?">
 							Borrar

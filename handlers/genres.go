@@ -72,5 +72,25 @@ func (h *Handler) DeleteGenre(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error interno del servidor", http.StatusInternalServerError)
 		return
 	}
+
+	movies, err := h.queries.ListMovie(r.Context())
+	if err != nil {
+		log.Printf("error al listar películas: %v", err)
+		http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+
+	byMovie, err := h.loadGenresByMovie(r.Context())
+	if err != nil {
+		log.Printf("error al listar géneros de las películas: %v", err)
+		http.Error(w, "error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+
+	// 1. Respuesta principal: reemplaza #genre-list-container
+	views.GenreList(genres, "").Render(r.Context(), w)
+	// 2. Fragmentos OOB: actualizan los checkboxes y la lista de películas
 	views.GenreCheckboxesOOB(genres).Render(r.Context(), w)
+	views.MovieListOOB(movies, byMovie).Render(r.Context(), w)
+
 }
